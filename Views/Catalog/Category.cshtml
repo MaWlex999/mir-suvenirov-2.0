@@ -1,0 +1,25 @@
+@model MirSuvenirov.Models.CategoryPageViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/category.css" asp-append-version="true" />
+}
+
+<div class="category-hero @Model.HeroClass">
+    <h1>@Model.Title</h1>
+    <p>@Model.Description</p>
+</div>
+
+<div class="products-grid">
+    @foreach (var product in Model.Products)
+    {
+        <div class="product-card">
+            <img src="~/@product.Image" alt="@product.Name" class="product-image" />
+            <div class="product-name">@product.Name</div>
+            <div class="product-price">@product.Price.ToString("N0") руб.</div>
+            <a asp-controller="Product" asp-action="Details" asp-route-id="@product.Id" class="product-link">Подробнее</a>
+        </div>
+    }
+</div>

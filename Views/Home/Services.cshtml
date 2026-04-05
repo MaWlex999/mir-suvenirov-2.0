@@ -1,0 +1,67 @@
+@{
+    ViewData["Title"] = "Услуги";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/services.css" asp-append-version="true" />
+}
+
+<h1>Наши услуги мастерской</h1>
+<p class="services-intro">Мы предлагаем полный спектр услуг по подбору, персонализации и оформлению сувениров для любых случаев.</p>
+
+<div class="services-grid">
+    <div class="service-card">
+        <div class="service-icon">🎁</div>
+        <h3>Персональный подход к подаркам</h3>
+        <ul class="service-features">
+            <li>Бесплатная консультация по подбору сувениров</li>
+            <li>Помощь в создании тематических подарочных наборов</li>
+            <li>Подбор корпоративных подарков для сотрудников и партнеров</li>
+            <li>Создание уникальных подарочных корзин</li>
+        </ul>
+    </div>
+
+    <div class="service-card">
+        <div class="service-icon">✏️</div>
+        <h3>Индивидуальная гравировка и персонализация</h3>
+        <ul class="service-features">
+            <li>Лазерная гравировка на деревянных и стеклянных поверхностях</li>
+            <li>Нанесение логотипов и надписей на ручки, шкатулки</li>
+            <li>Создание памятных надписей с датами и именами</li>
+        </ul>
+        <div class="service-note">
+            <strong>Срок выполнения:</strong> 1-2 рабочих дня
+        </div>
+    </div>
+
+    <div class="service-card">
+        <div class="service-icon">🎀</div>
+        <h3>Подарочная упаковка</h3>
+        <ul class="service-features">
+            <li>Профессиональная упаковка в фирменную бумагу</li>
+            <li>Украшение лентами и декоративными элементами</li>
+            <li>Создание подарочных коробок премиум-класса</li>
+            <li>Тематическое оформление к праздникам</li>
+        </ul>
+    </div>
+
+    <div class="service-card">
+        <div class="service-icon">🏢</div>
+        <h3>Корпоративное обслуживание</h3>
+        <ul class="service-features">
+            <li>Разработка сувенирной продукции с фирменной символикой</li>
+            <li>Оптовые поставки для мероприятий и конференций</li>
+            <li>Система скидок для постоянных бизнес-клиентов</li>
+            <li>Доставка крупных заказов по всему городу</li>
+        </ul>
+    </div>
+</div>
+
+<div class="cta-section">
+    <h2>Готовы заказать услуги?</h2>
+    <p>Свяжитесь с нами для получения персональной консультации и расчета стоимости</p>
+    <div class="cta-buttons">
+        <a href="mailto:mawlex999@yandex.ru" class="btn btn-primary">Написать нам</a>
+        <a asp-controller="Catalog" asp-action="Index" class="btn btn-secondary">Посмотреть каталог</a>
+    </div>
+</div>

@@ -1,0 +1,96 @@
+@using MirSuvenirov.Data
+@using System.Text.Json
+@inject AppDbContext Db
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] ?? "MirSuvenirov")</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/catalog.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/catalog-extensions.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    @{
+        var basketCount = Db.Baskets.Sum(x => x.Quantity);
+    }
+    <header>
+        <div class="container header-inner">
+            <div class="header-left">
+                <a asp-controller="Home" asp-action="About">О компании</a>
+            </div>
+            <a class="brand" asp-controller="Home" asp-action="Index">
+                <img src="~/images/MIRSUV.png" alt="mir-suvenirov">
+            </a>
+            <div class="header-right">
+                <a asp-controller="Basket" asp-action="Index">Корзина <span class="basket-counter" style="display:@(basketCount > 0 ? "inline-block" : "none")">@basketCount</span></a>
+                <a asp-controller="Favorites" asp-action="Index">Избранное</a>
+                <a asp-controller="Home" asp-action="Account">Аккаунт</a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container nav-inner">
+            <a asp-controller="Catalog" asp-action="Index">Каталог</a>
+            <a asp-controller="Home" asp-action="Services">Услуги</a>
+            <a asp-controller="Home" asp-action="Portfolio">Портфолио</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        @RenderBody()
+    </main>
+
+    <footer>
+        <div class="container footer-inner">
+            <p>© 2026 Интернет-магазин "mir-suvenirov". Все права защищены.</p>
+            <p>Контакты: <a href="mailto:mawlex999@yandex.ru">mawlex999@yandex.ru</a></p>
+        </div>
+    </footer>
+
+    <script>
+        (function () {
+            if (window.showToast) return;
+
+            window.showToast = function (message, type) {
+                var toast = document.createElement('div');
+                var normalizedType = type || 'success';
+                var icon = normalizedType === 'error' ? '✕' : (normalizedType === 'warning' ? '⚠' : '✓');
+                toast.className = 'ajax-toast ajax-toast--' + normalizedType;
+                toast.innerHTML =
+                    '<span class="ajax-toast-content">' +
+                    '<span class="ajax-toast-icon" aria-hidden="true">' + icon + '</span>' +
+                    '<span>' + message + '</span>' +
+                    '</span>';
+                document.body.appendChild(toast);
+
+                setTimeout(function () { toast.classList.add('show'); }, 10);
+                setTimeout(function () {
+                    toast.classList.remove('show');
+                    setTimeout(function () {
+                        if (toast.parentNode) toast.parentNode.removeChild(toast);
+                    }, 350);
+                }, 2000);
+            };
+        })();
+    </script>
+
+    @if (TempData["ToastMessage"] is string toastMessage)
+    {
+        var toastType = TempData["ToastType"]?.ToString() ?? "success";
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                window.showToast(@Html.Raw(JsonSerializer.Serialize(toastMessage)), @Html.Raw(JsonSerializer.Serialize(toastType)));
+            });
+        </script>
+    }
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,51 @@
+@model List<MirSuvenirov.Models.FavoriteItem>
+@{
+    ViewData["Title"] = "Избранное";
+}
+
+<div class="favorites-page">
+<h1>Избранное</h1>
+
+@if (!Model.Any())
+{
+    <div class="empty-state-message">
+        <p class="empty-state-title">В избранном пока нет товаров.</p>
+        <a asp-controller="Catalog" asp-action="Index" class="empty-state-link">Открыть каталог</a>
+    </div>
+}
+else
+{
+    <table class="favorites-table">
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th>Категория</th>
+                <th>Материал</th>
+                <th>Цена</th>
+                <th class="actions-col">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <a asp-controller="Product" asp-action="Details" asp-route-id="@item.ProductId" class="product-title-link">@item.Product.Name</a>
+                    </td>
+                    <td>@item.Product.Category</td>
+                    <td>@item.Product.Material</td>
+                    <td>@item.Product.Price.ToString("N0") руб.</td>
+                    <td class="actions-col">
+                        <div class="actions-wrap">
+                            <form asp-action="Remove" method="post" class="actions-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <button type="submit">Удалить</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+</div>

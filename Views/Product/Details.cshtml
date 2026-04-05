@@ -1,0 +1,31 @@
+@model MirSuvenirov.Models.Product
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<h1>@Model.Name</h1>
+
+<div style="display:grid; grid-template-columns:minmax(260px, 340px) 1fr; gap:24px; align-items:start;">
+    <img src="~/@Model.Image" alt="@Model.Name" style="width:100%; border-radius:12px; border:1px solid #e6e6e6;" />
+    <div>
+        <p>@Model.Description</p>
+        <p><strong>Категория:</strong> @Model.Category</p>
+        <p><strong>Материал:</strong> @Model.Material</p>
+        <p><strong>Наличие:</strong> @(Model.InStock ? "В наличии" : "Под заказ")</p>
+        <p class="price-value">@Model.Price.ToString("N0") руб.</p>
+
+        <div class="product-actions-row" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:16px;">
+            <form asp-controller="Basket" asp-action="Add" method="post" class="product-action-form">
+                <input type="hidden" name="productId" value="@Model.Id" />
+                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                <button type="submit" class="detail-action-btn">Добавить в корзину</button>
+            </form>
+            <form asp-controller="Favorites" asp-action="Toggle" method="post" class="product-action-form">
+                <input type="hidden" name="productId" value="@Model.Id" />
+                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                <button type="submit" class="detail-action-btn">В избранное</button>
+            </form>
+            <a asp-controller="Catalog" asp-action="Index" class="detail-back-link">Вернуться в каталог</a>
+        </div>
+    </div>
+</div>
