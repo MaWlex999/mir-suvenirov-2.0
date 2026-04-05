@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MirSuvenirov.Data;
 using MirSuvenirov.Models;
+using System.Net.Http.Headers;
 
 namespace MirSuvenirov.Controllers
 {
@@ -139,6 +140,17 @@ namespace MirSuvenirov.Controllers
 
                 imagePath = uploadedPath;
             }
+            else if (IsAbsoluteHttpUrl(imagePath))
+            {
+                var downloadedPath = await DownloadAndSaveRemoteImageAsync(imagePath!);
+                if (downloadedPath == null)
+                {
+                    ModelState.AddModelError(nameof(model.ImageUrl), "Не удалось загрузить изображение по ссылке. Загрузите файл или укажите прямую ссылку на изображение.");
+                    return View(model);
+                }
+
+                imagePath = downloadedPath;
+            }
 
             if (string.IsNullOrWhiteSpace(imagePath))
             {
@@ -183,6 +195,101 @@ namespace MirSuvenirov.Controllers
             return normalized.TrimStart('/');
         }
 
+        private static bool IsAbsoluteHttpUrl(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            return Uri.TryCreate(value, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+        }
+
+        private async Task<string?> DownloadAndSaveRemoteImageAsync(string imageUrl)
+        {
+            using var httpClient = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(15)
+            };
+
+            using var response = await httpClient.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var contentType = response.Content.Headers.ContentType?.MediaType?.ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(contentType) || !contentType.StartsWith("image/"))
+            {
+                return null;
+            }
+
+            var extension = ResolveImageExtension(response.Content.Headers.ContentType, imageUrl);
+            if (extension == null)
+            {
+                return null;
+            }
+
+            var uploadDirectory = GetProductUploadsDirectory(out var relativePrefix);
+            var safeFileName = $"{Guid.NewGuid():N}{extension}";
+            var absolutePath = Path.Combine(uploadDirectory, safeFileName);
+
+            await using (var destination = new FileStream(absolutePath, FileMode.Create))
+            await using (var source = await response.Content.ReadAsStreamAsync())
+            {
+                await source.CopyToAsync(destination);
+            }
+
+            var info = new FileInfo(absolutePath);
+            if (info.Length <= 0 || info.Length > MaxImageFileSize)
+            {
+                if (System.IO.File.Exists(absolutePath))
+                {
+                    System.IO.File.Delete(absolutePath);
+                }
+                return null;
+            }
+
+            return $"{relativePrefix}/{safeFileName}";
+        }
+
+        private static string? ResolveImageExtension(MediaTypeHeaderValue? contentType, string sourceUrl)
+        {
+            var mediaType = contentType?.MediaType?.ToLowerInvariant() ?? string.Empty;
+            var extension = mediaType switch
+            {
+                "image/jpeg" => ".jpg",
+                "image/png" => ".png",
+                "image/webp" => ".webp",
+                "image/gif" => ".gif",
+                _ => null
+            };
+
+            if (extension != null && AllowedImageExtensions.Contains(extension))
+            {
+                return extension;
+            }
+
+            var urlExtension = Path.GetExtension(new Uri(sourceUrl).AbsolutePath).ToLowerInvariant();
+            return AllowedImageExtensions.Contains(urlExtension) ? urlExtension : null;
+        }
+
+        private string GetProductUploadsDirectory(out string relativePrefix)
+        {
+            var now = DateTime.UtcNow;
+            var relativeSegments = new[] { "uploads", "products", now.ToString("yyyy"), now.ToString("MM") };
+            relativePrefix = string.Join("/", relativeSegments);
+
+            var webRootPath = string.IsNullOrWhiteSpace(_environment.WebRootPath)
+                ? Path.Combine(_environment.ContentRootPath, "wwwroot")
+                : _environment.WebRootPath;
+
+            var uploadDirectory = Path.Combine(webRootPath, Path.Combine(relativeSegments));
+            Directory.CreateDirectory(uploadDirectory);
+            return uploadDirectory;
+        }
+
         private async Task<string?> SaveProductImageAsync(IFormFile file)
         {
             if (file.Length <= 0)
@@ -204,13 +311,7 @@ namespace MirSuvenirov.Controllers
                 return null;
             }
 
-            var now = DateTime.UtcNow;
-            var relativeSegments = new[] { "uploads", "products", now.ToString("yyyy"), now.ToString("MM") };
-            var webRootPath = string.IsNullOrWhiteSpace(_environment.WebRootPath)
-                ? Path.Combine(_environment.ContentRootPath, "wwwroot")
-                : _environment.WebRootPath;
-            var uploadDirectory = Path.Combine(webRootPath, Path.Combine(relativeSegments));
-            Directory.CreateDirectory(uploadDirectory);
+            var uploadDirectory = GetProductUploadsDirectory(out var relativePrefix);
 
             var safeFileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
             var absolutePath = Path.Combine(uploadDirectory, safeFileName);
@@ -220,7 +321,7 @@ namespace MirSuvenirov.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            return string.Join("/", relativeSegments) + "/" + safeFileName;
+            return $"{relativePrefix}/{safeFileName}";
         }
 
         private IActionResult Category(string code, string title, string description, string heroClass)
