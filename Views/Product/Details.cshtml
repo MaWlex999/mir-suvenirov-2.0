@@ -5,8 +5,16 @@
 
 <h1>@Model.Name</h1>
 
+@{
+    var detailImageSrc = !string.IsNullOrWhiteSpace(Model.Image) &&
+                         (Model.Image.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                          Model.Image.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        ? Model.Image
+        : Url.Content("~/" + (Model.Image ?? string.Empty).TrimStart('/'));
+}
+
 <div style="display:grid; grid-template-columns:minmax(260px, 340px) 1fr; gap:24px; align-items:start;">
-    <img src="~/@Model.Image" alt="@Model.Name" style="width:100%; border-radius:12px; border:1px solid #e6e6e6;" />
+    <img src="@detailImageSrc" alt="@Model.Name" style="width:100%; border-radius:12px; border:1px solid #e6e6e6;" />
     <div>
         <p>@Model.Description</p>
         <p><strong>Категория:</strong> @Model.Category</p>

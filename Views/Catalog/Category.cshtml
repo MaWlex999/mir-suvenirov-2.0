@@ -16,7 +16,14 @@
     @foreach (var product in Model.Products)
     {
         <div class="product-card">
-            <img src="~/@product.Image" alt="@product.Name" class="product-image" />
+            @{
+                var categoryImageSrc = !string.IsNullOrWhiteSpace(product.Image) &&
+                                       (product.Image.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                                        product.Image.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    ? product.Image
+                    : Url.Content("~/" + (product.Image ?? string.Empty).TrimStart('/'));
+            }
+            <img src="@categoryImageSrc" alt="@product.Name" class="product-image" />
             <div class="product-name">@product.Name</div>
             <div class="product-price">@product.Price.ToString("N0") руб.</div>
             <a asp-controller="Product" asp-action="Details" asp-route-id="@product.Id" class="product-link">Подробнее</a>

@@ -83,7 +83,14 @@
         {
             <tr>
                 <td>
-                    <img src="~/@p.Image" alt="@p.Name" />
+                    @{
+                        var imageSrc = !string.IsNullOrWhiteSpace(p.Image) &&
+                                       (p.Image.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                                        p.Image.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                            ? p.Image
+                            : Url.Content("~/" + (p.Image ?? string.Empty).TrimStart('/'));
+                    }
+                    <img src="@imageSrc" alt="@p.Name" />
                 </td>
                 <td class="product-name-cell">
                     <a asp-controller="Product" asp-action="Details" asp-route-id="@p.Id">@p.Name</a>
@@ -145,7 +152,11 @@
 
             function normalizeImagePath(path) {
                 if (!path) return '';
-                return '/' + String(path).replace(/^\/+/, '');
+                var value = String(path).trim();
+                if (/^https?:\/\//i.test(value) || /^data:/i.test(value)) {
+                    return value;
+                }
+                return '/' + value.replace(/^\/+/, '');
             }
 
             function renderProducts(products) {
