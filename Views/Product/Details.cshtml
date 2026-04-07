@@ -11,13 +11,21 @@
                           Model.Image.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         ? Model.Image
         : Url.Content("~/" + (Model.Image ?? string.Empty).TrimStart('/'));
+    var categoryDisplayName = (Model.Category ?? string.Empty).ToLowerInvariant() switch
+    {
+        "box" => "Шкатулки",
+        "lamp" => "Светильники",
+        "pen" => "Письменные принадлежности",
+        "holder" => "Держатели и органайзеры",
+        _ => Model.Category
+    };
 }
 
 <div style="display:grid; grid-template-columns:minmax(260px, 340px) 1fr; gap:24px; align-items:start;">
     <img src="@detailImageSrc" alt="@Model.Name" style="width:100%; border-radius:12px; border:1px solid #e6e6e6;" />
     <div>
         <p>@Model.Description</p>
-        <p><strong>Категория:</strong> @Model.Category</p>
+        <p><strong>Категория:</strong> @categoryDisplayName</p>
         <p><strong>Материал:</strong> @Model.Material</p>
         <p><strong>Наличие:</strong> @(Model.InStock ? "В наличии" : "Под заказ")</p>
         <p class="price-value">@Model.Price.ToString("N0") руб.</p>

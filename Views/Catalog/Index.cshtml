@@ -16,7 +16,15 @@
             <option value="all">Все категории</option>
             @foreach (var cat in Model.Categories)
             {
-                <option value="@cat" selected="@(Model.Category == cat)">@cat</option>
+                var categoryDisplayName = (cat ?? string.Empty).ToLowerInvariant() switch
+                {
+                    "box" => "Шкатулки",
+                    "lamp" => "Светильники",
+                    "pen" => "Письменные принадлежности",
+                    "holder" => "Держатели и органайзеры",
+                    _ => cat
+                };
+                <option value="@cat" selected="@(Model.Category == cat)">@categoryDisplayName</option>
             }
         </select>
     </div>

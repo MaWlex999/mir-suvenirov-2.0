@@ -1,4 +1,12 @@
 window.AjaxAPI = (function () {
+    window.getCategoryName = window.getCategoryName || function (category) {
+        var value = String(category || '').toLowerCase();
+        if (value === 'box') return 'Шкатулки';
+        if (value === 'lamp') return 'Светильники';
+        if (value === 'pen') return 'Письменные принадлежности';
+        if (value === 'holder') return 'Держатели и органайзеры';
+        return category || '';
+    };
 
     function search(query) {
         var q = (query || '').trim();
