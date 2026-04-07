@@ -42,6 +42,12 @@ window.AjaxAPI = (function () {
         }).then(function (r) { return r.json(); });
     }
 
+    function removeFromBasket(itemId) {
+        return fetch('/api/basket/' + itemId, {
+            method: 'DELETE'
+        }).then(function (r) { return r.json(); });
+    }
+
     function deleteProduct(productId) {
         return fetch('/api/products/' + productId, {
             method: 'DELETE'
@@ -56,13 +62,21 @@ window.AjaxAPI = (function () {
         }).then(function (r) { return r.json(); });
     }
 
+    function removeFromFavorites(itemId) {
+        return fetch('/api/favorites/' + itemId, {
+            method: 'DELETE'
+        }).then(function (r) { return r.json(); });
+    }
+
     return {
         search: search,
         getProduct: getProduct,
         getCatalog: getCatalog,
         addToBasket: addToBasket,
+        removeFromBasket: removeFromBasket,
         deleteProduct: deleteProduct,
-        toggleFavorite: toggleFavorite
+        toggleFavorite: toggleFavorite,
+        removeFromFavorites: removeFromFavorites
     };
 
 })();

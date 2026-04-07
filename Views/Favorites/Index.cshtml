@@ -6,16 +6,13 @@
 <div class="favorites-page">
 <h1>Избранное</h1>
 
-@if (!Model.Any())
-{
-    <div class="empty-state-message">
+<div id="favorites-empty-state" class="empty-state-message" style="display:@(Model.Any() ? "none" : "block")">
         <p class="empty-state-title">В избранном пока нет товаров.</p>
         <a asp-controller="Catalog" asp-action="Index" class="empty-state-link">Открыть каталог</a>
-    </div>
-}
-else
-{
-    <table class="favorites-table">
+</div>
+
+<div id="favorites-content-wrap" style="display:@(Model.Any() ? "block" : "none")">
+    <table class="favorites-table" id="favorites-table">
         <thead>
             <tr>
                 <th>Товар</th>
@@ -25,19 +22,27 @@ else
                 <th class="actions-col">Действия</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="favorites-table-body">
             @foreach (var item in Model)
             {
-                <tr>
+                var categoryDisplayName = (item.Product.Category ?? string.Empty).ToLowerInvariant() switch
+                {
+                    "box" => "Шкатулки",
+                    "lamp" => "Светильники",
+                    "pen" => "Письменные принадлежности",
+                    "holder" => "Держатели и органайзеры",
+                    _ => item.Product.Category
+                };
+                <tr data-item-id="@item.Id">
                     <td>
                         <a asp-controller="Product" asp-action="Details" asp-route-id="@item.ProductId" class="product-title-link">@item.Product.Name</a>
                     </td>
-                    <td>@item.Product.Category</td>
+                    <td>@categoryDisplayName</td>
                     <td>@item.Product.Material</td>
                     <td>@item.Product.Price.ToString("N0") руб.</td>
                     <td class="actions-col">
                         <div class="actions-wrap">
-                            <form asp-action="Remove" method="post" class="actions-form">
+                            <form asp-action="Remove" method="post" class="actions-form favorite-remove-form" data-item-id="@item.Id">
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <button type="submit">Удалить</button>
                             </form>
@@ -47,5 +52,71 @@ else
             }
         </tbody>
     </table>
-}
 </div>
+</div>
+
+@section Scripts {
+    <script src="~/ajax-stub.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var tableBody = document.getElementById('favorites-table-body');
+            var contentWrap = document.getElementById('favorites-content-wrap');
+            var emptyState = document.getElementById('favorites-empty-state');
+
+            function toggleEmptyStateIfNeeded() {
+                if (!tableBody) return;
+                var hasRows = tableBody.querySelectorAll('tr').length > 0;
+                if (contentWrap) {
+                    contentWrap.style.display = hasRows ? 'block' : 'none';
+                }
+                if (emptyState) {
+                    emptyState.style.display = hasRows ? 'none' : 'block';
+                }
+            }
+
+            document.addEventListener('submit', function (e) {
+                var form = e.target.closest('.favorite-remove-form');
+                if (!form) return;
+                e.preventDefault();
+
+                if (!window.AjaxAPI || !window.AjaxAPI.removeFromFavorites) {
+                    form.submit();
+                    return;
+                }
+
+                var itemId = parseInt(form.dataset.itemId || '0', 10);
+                if (!itemId) return;
+
+                var submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.disabled = true;
+
+                window.AjaxAPI.removeFromFavorites(itemId)
+                    .then(function (response) {
+                        if (!response || !response.ok) {
+                            if (window.showToast) {
+                                window.showToast('Не удалось удалить товар из избранного', 'error');
+                            }
+                            if (submitBtn) submitBtn.disabled = false;
+                            return;
+                        }
+
+                        var row = form.closest('tr');
+                        if (row) {
+                            row.remove();
+                        }
+
+                        toggleEmptyStateIfNeeded();
+                        if (window.showToast) {
+                            window.showToast('Товар удален из избранного', 'success');
+                        }
+                    })
+                    .catch(function () {
+                        if (window.showToast) {
+                            window.showToast('Ошибка соединения с сервером', 'error');
+                        }
+                        if (submitBtn) submitBtn.disabled = false;
+                    });
+            });
+        });
+    </script>
+}

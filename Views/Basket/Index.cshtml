@@ -7,16 +7,13 @@
 <div class="basket-page">
 <h1>Корзина</h1>
 
-@if (!Model.Any())
-{
-    <div class="empty-state-message">
+<div id="basket-empty-state" class="empty-state-message" style="display:@(Model.Any() ? "none" : "block")">
         <p class="empty-state-title">В корзине пока нет товаров.</p>
         <a asp-controller="Catalog" asp-action="Index" class="empty-state-link">Открыть каталог</a>
-    </div>
-}
-else
-{
-    <table class="basket-table">
+</div>
+
+<div id="basket-content-wrap" style="display:@(Model.Any() ? "block" : "none")">
+    <table class="basket-table" id="basket-table">
         <thead>
             <tr>
                 <th>Товар</th>
@@ -26,21 +23,22 @@ else
                 <th class="actions-col">Действия</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="basket-table-body">
             @foreach (var item in Model)
             {
-                <tr>
+                var lineTotal = item.Product.Price * item.Quantity;
+                <tr data-item-id="@item.Id" data-line-total="@lineTotal">
                     <td>
                         <a asp-controller="Product" asp-action="Details" asp-route-id="@item.ProductId" class="product-title-link">@item.Product.Name</a>
                     </td>
                     <td>@item.Product.Price.ToString("N0") руб.</td>
                     <td>@item.Quantity</td>
-                    <td>@((item.Product.Price * item.Quantity).ToString("N0")) руб.</td>
+                    <td>@lineTotal.ToString("N0") руб.</td>
                     <td class="actions-col">
                         <div class="actions-wrap">
-                            <form asp-action="Remove" method="post" class="actions-form">
+                            <form asp-action="Remove" method="post" class="actions-form basket-remove-form" data-item-id="@item.Id">
                                 <input type="hidden" name="id" value="@item.Id" />
-                                <button type="submit" class="basket-remove-btn">Удалить</button>
+                                <button type="submit" class="basket-remove-btn" data-item-id="@item.Id">Удалить</button>
                             </form>
                         </div>
                     </td>
@@ -48,6 +46,95 @@ else
             }
         </tbody>
     </table>
-    <p class="basket-total-line"><strong>Итого: @total.ToString("N0") руб.</strong></p>
-}
+    <p class="basket-total-line" id="basket-total-line"><strong>Итого: <span id="basket-total-value">@total.ToString("N0")</span> руб.</strong></p>
 </div>
+</div>
+
+@section Scripts {
+    <script src="~/ajax-stub.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var tableBody = document.getElementById('basket-table-body');
+            var totalValue = document.getElementById('basket-total-value');
+            var contentWrap = document.getElementById('basket-content-wrap');
+            var emptyState = document.getElementById('basket-empty-state');
+
+            function formatNumber(value) {
+                return Number(value || 0).toLocaleString('ru-RU');
+            }
+
+            function updateBasketCounter(totalItems) {
+                document.querySelectorAll('.basket-counter').forEach(function (counter) {
+                    if (totalItems > 0) {
+                        counter.textContent = String(totalItems);
+                        counter.style.display = 'inline-block';
+                    } else {
+                        counter.textContent = '';
+                        counter.style.display = 'none';
+                    }
+                });
+            }
+
+            function toggleEmptyStateIfNeeded() {
+                if (!tableBody) return;
+                var hasRows = tableBody.querySelectorAll('tr').length > 0;
+                if (contentWrap) {
+                    contentWrap.style.display = hasRows ? 'block' : 'none';
+                }
+                if (emptyState) {
+                    emptyState.style.display = hasRows ? 'none' : 'block';
+                }
+            }
+
+            document.addEventListener('submit', function (e) {
+                var form = e.target.closest('.basket-remove-form');
+                if (!form) return;
+                e.preventDefault();
+
+                if (!window.AjaxAPI || !window.AjaxAPI.removeFromBasket) {
+                    form.submit();
+                    return;
+                }
+
+                var itemId = parseInt(form.dataset.itemId || '0', 10);
+                if (!itemId) return;
+
+                var submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.disabled = true;
+
+                window.AjaxAPI.removeFromBasket(itemId)
+                    .then(function (response) {
+                        if (!response || !response.ok) {
+                            if (window.showToast) {
+                                window.showToast('Не удалось удалить товар из корзины', 'error');
+                            }
+                            if (submitBtn) submitBtn.disabled = false;
+                            return;
+                        }
+
+                        var row = form.closest('tr');
+                        if (row) {
+                            var lineTotal = parseFloat(row.dataset.lineTotal || '0');
+                            row.remove();
+                            if (totalValue) {
+                                var current = parseFloat((totalValue.textContent || '0').replace(/\s/g, '')) || 0;
+                                totalValue.textContent = formatNumber(Math.max(0, current - lineTotal));
+                            }
+                        }
+
+                        updateBasketCounter(response.totalItems || 0);
+                        toggleEmptyStateIfNeeded();
+                        if (window.showToast) {
+                            window.showToast('Товар удален из корзины', 'success');
+                        }
+                    })
+                    .catch(function () {
+                        if (window.showToast) {
+                            window.showToast('Ошибка соединения с сервером', 'error');
+                        }
+                        if (submitBtn) submitBtn.disabled = false;
+                    });
+            });
+        });
+    </script>
+}
