@@ -81,6 +81,9 @@
     <tbody id="catalog-table-body">
         @foreach (var p in Model.Products)
         {
+            var shortDescription = (p.Description ?? string.Empty).Length > 70
+                ? (p.Description ?? string.Empty).Substring(0, 70) + "..."
+                : (p.Description ?? string.Empty);
             <tr>
                 <td>
                     @{
@@ -107,7 +110,7 @@
                         </button>
                     </div>
                 </td>
-                <td>@p.Description</td>
+                <td>@shortDescription</td>
                 <td><span class="price-value">@p.Price.ToString("N0") руб.</span></td>
                 <td class="availability-cell">
                     @if (p.InStock)
@@ -179,6 +182,10 @@
                     var inStockBadge = p.inStock
                         ? '<span class="badge badge-instock availability-badge">В наличии</span>'
                         : '<span class="badge badge-onorder availability-badge">Под заказ</span>';
+                    var descriptionValue = String(p.description || '');
+                    var shortDescription = descriptionValue.length > 70
+                        ? descriptionValue.substring(0, 70) + '...'
+                        : descriptionValue;
 
                     return '' +
                         '<tr>' +
@@ -192,7 +199,7 @@
                                     '<button type="button" class="favorite-btn product-icon-btn" data-id="' + p.id + '" title="Добавить в избранное" aria-label="Добавить в избранное"><span class="favorite-btn-icon">♡</span></button>' +
                                 '</div>' +
                             '</td>' +
-                            '<td>' + escapeHtml(p.description) + '</td>' +
+                            '<td>' + escapeHtml(shortDescription) + '</td>' +
                             '<td><span class="price-value">' + Number(p.price || 0).toLocaleString('ru-RU') + ' руб.</span></td>' +
                             '<td class="availability-cell">' + inStockBadge + '</td>' +
                             '<td>' +
