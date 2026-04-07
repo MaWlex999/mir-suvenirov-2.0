@@ -79,18 +79,18 @@
                 if (!form) return;
                 e.preventDefault();
 
-                if (!window.AjaxAPI || !window.AjaxAPI.removeFromFavorites) {
-                    form.submit();
-                    return;
-                }
-
                 var itemId = parseInt(form.dataset.itemId || '0', 10);
                 if (!itemId) return;
+                var removeFromFavorites = (window.AjaxAPI && window.AjaxAPI.removeFromFavorites)
+                    ? window.AjaxAPI.removeFromFavorites
+                    : function (id) {
+                        return fetch('/api/favorites/' + id, { method: 'DELETE' }).then(function (r) { return r.json(); });
+                    };
 
                 var submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) submitBtn.disabled = true;
 
-                window.AjaxAPI.removeFromFavorites(itemId)
+                removeFromFavorites(itemId)
                     .then(function (response) {
                         if (!response || !response.ok) {
                             if (window.showToast) {

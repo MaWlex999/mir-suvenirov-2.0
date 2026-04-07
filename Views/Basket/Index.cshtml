@@ -91,18 +91,18 @@
                 if (!form) return;
                 e.preventDefault();
 
-                if (!window.AjaxAPI || !window.AjaxAPI.removeFromBasket) {
-                    form.submit();
-                    return;
-                }
-
                 var itemId = parseInt(form.dataset.itemId || '0', 10);
                 if (!itemId) return;
+                var removeFromBasket = (window.AjaxAPI && window.AjaxAPI.removeFromBasket)
+                    ? window.AjaxAPI.removeFromBasket
+                    : function (id) {
+                        return fetch('/api/basket/' + id, { method: 'DELETE' }).then(function (r) { return r.json(); });
+                    };
 
                 var submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) submitBtn.disabled = true;
 
-                window.AjaxAPI.removeFromBasket(itemId)
+                removeFromBasket(itemId)
                     .then(function (response) {
                         if (!response || !response.ok) {
                             if (window.showToast) {
