@@ -28,8 +28,16 @@ namespace MirSuvenirov.Controllers
             string availability,
             int? priceMin,
             int? priceMax,
-            string sort)
+            string sort,
+            int page = 1,
+            int pageSize = 4)
         {
+            pageSize = 4;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
             var productsQuery = _db.Products.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -68,9 +76,21 @@ namespace MirSuvenirov.Controllers
                 _ => productsQuery.OrderBy(p => p.Id)
             };
 
+            var totalCount = productsQuery.Count();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            if (page > totalPages)
+            {
+                page = totalPages;
+            }
+
+            var pagedProducts = productsQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
             var viewModel = new ProductFilterViewModel
             {
-                Products = productsQuery.ToList(),
+                Products = pagedProducts,
                 Query = search,
                 Category = category,
                 Material = material,
@@ -79,7 +99,11 @@ namespace MirSuvenirov.Controllers
                 PriceMin = priceMin,
                 PriceMax = priceMax,
                 Categories = _db.Products.Select(p => p.Category).Distinct().ToList(),
-                Materials = _db.Products.Select(p => p.Material).Distinct().ToList()
+                Materials = _db.Products.Select(p => p.Material).Distinct().ToList(),
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages
             };
 
             return View(viewModel);

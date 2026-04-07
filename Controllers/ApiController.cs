@@ -50,8 +50,16 @@ namespace MirSuvenirov.Controllers
             string? availability,
             int? priceMin,
             int? priceMax,
-            string? sort)
+            string? sort,
+            int page = 1,
+            int pageSize = 4)
         {
+            pageSize = 4;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
             var productsQuery = _db.Products.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -90,8 +98,27 @@ namespace MirSuvenirov.Controllers
                 _ => productsQuery.OrderBy(p => p.Id)
             };
 
-            var products = productsQuery.ToList();
-            return Ok(new { ok = true, products = products, total = products.Count });
+            var totalCount = productsQuery.Count();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            if (page > totalPages)
+            {
+                page = totalPages;
+            }
+
+            var products = productsQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return Ok(new
+            {
+                ok = true,
+                products = products,
+                total = totalCount,
+                totalPages = totalPages,
+                page = page,
+                pageSize = pageSize
+            });
         }
 
         [HttpGet("products/{id}")]

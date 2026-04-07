@@ -65,7 +65,7 @@
     <a asp-action="Index" class="filter-reset">Сбросить</a>
 </form>
 
-<p>Найдено товаров: <strong id="catalog-found-count">@Model.Products.Count</strong></p>
+<p>Найдено товаров: <strong id="catalog-found-count">@Model.TotalCount</strong></p>
 
 <table>
     <thead>
@@ -127,6 +127,16 @@
         }
     </tbody>
 </table>
+
+<div id="catalog-pagination" class="catalog-pagination">
+    @if (Model.TotalPages > 1)
+    {
+        for (var i = 1; i <= Model.TotalPages; i++)
+        {
+            <button type="button" class="catalog-page-btn @(i == Model.Page ? "active" : "")" data-page="@i">@i</button>
+        }
+    }
+</div>
 </div>
 
 @section Scripts {
@@ -140,6 +150,8 @@
             var submitTimer = null;
             var tableBody = document.getElementById('catalog-table-body');
             var foundCount = document.getElementById('catalog-found-count');
+            var pagination = document.getElementById('catalog-pagination');
+            var currentPage = @Model.Page;
 
             function escapeHtml(value) {
                 return String(value)
@@ -203,8 +215,24 @@
                 }
             }
 
-            function applyCatalogFilters() {
+            function renderPagination(totalPages, activePage) {
+                if (!pagination) return;
+
+                if (!totalPages || totalPages <= 1) {
+                    pagination.innerHTML = '';
+                    return;
+                }
+
+                var html = '';
+                for (var i = 1; i <= totalPages; i++) {
+                    html += '<button type="button" class="catalog-page-btn' + (i === activePage ? ' active' : '') + '" data-page="' + i + '">' + i + '</button>';
+                }
+                pagination.innerHTML = html;
+            }
+
+            function applyCatalogFilters(targetPage) {
                 if (!filtersForm || !window.AjaxAPI || !window.AjaxAPI.getCatalog) return;
+                var requestedPage = targetPage || 1;
 
                 var formData = new FormData(filtersForm);
                 var filters = {
@@ -214,7 +242,9 @@
                     availability: formData.get('availability') || '',
                     priceMin: formData.get('priceMin') || '',
                     priceMax: formData.get('priceMax') || '',
-                    sort: formData.get('sort') || ''
+                    sort: formData.get('sort') || '',
+                    page: requestedPage,
+                    pageSize: 4
                 };
 
                 window.AjaxAPI.getCatalog(filters)
@@ -227,13 +257,17 @@
                         }
 
                         renderProducts(response.products || []);
+                        currentPage = response.page || requestedPage;
                         if (foundCount) {
                             foundCount.textContent = (response.total || 0).toString();
                         }
+                        renderPagination(response.totalPages || 1, currentPage);
 
                         var urlParams = new URLSearchParams();
                         Object.keys(filters).forEach(function (key) {
                             var value = filters[key];
+                            if (key === 'pageSize') return;
+                            if (key === 'page' && Number(value) <= 1) return;
                             if (!value || value === 'all') return;
                             urlParams.set(key, value);
                         });
@@ -247,31 +281,43 @@
                     });
             }
 
-            function submitFiltersDebounced(delayMs) {
+            function submitFiltersDebounced(delayMs, targetPage) {
                 clearTimeout(submitTimer);
                 submitTimer = setTimeout(function () {
-                    applyCatalogFilters();
+                    applyCatalogFilters(targetPage || 1);
                 }, delayMs || 0);
             }
 
             if (filtersForm) {
                 filtersForm.addEventListener('submit', function (e) {
                     e.preventDefault();
-                    applyCatalogFilters();
+                    applyCatalogFilters(1);
                 });
 
                 var immediateFields = filtersForm.querySelectorAll('select');
                 immediateFields.forEach(function (field) {
                     field.addEventListener('change', function () {
-                        submitFiltersDebounced(0);
+                        submitFiltersDebounced(0, 1);
                     });
                 });
 
                 var typingFields = filtersForm.querySelectorAll('input[type="text"], input[type="number"]');
                 typingFields.forEach(function (field) {
                     field.addEventListener('input', function () {
-                        submitFiltersDebounced(450);
+                        submitFiltersDebounced(450, 1);
                     });
+                });
+            }
+
+            if (pagination) {
+                pagination.addEventListener('click', function (e) {
+                    var pageBtn = e.target.closest('.catalog-page-btn');
+                    if (!pageBtn) return;
+
+                    var page = parseInt(pageBtn.dataset.page, 10);
+                    if (!page) return;
+
+                    applyCatalogFilters(page);
                 });
             }
 
@@ -310,7 +356,7 @@
                         if (window.showToast) {
                             window.showToast('Товар удален из каталога', 'success');
                         }
-                        applyCatalogFilters();
+                        applyCatalogFilters(currentPage);
                     })
                     .catch(function () {
                         if (window.showToast) {
