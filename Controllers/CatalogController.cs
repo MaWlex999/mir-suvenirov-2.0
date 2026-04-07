@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MirSuvenirov.Data;
 using MirSuvenirov.Models;
 using System.Net.Http.Headers;
@@ -13,6 +14,7 @@ namespace MirSuvenirov.Controllers
         {
             ".jpg", ".jpeg", ".png", ".webp", ".gif"
         };
+        private const int CatalogPageSize = 4;
         private const long MaxImageFileSize = 5 * 1024 * 1024;
 
         public CatalogController(AppDbContext db, IWebHostEnvironment environment)
@@ -21,7 +23,7 @@ namespace MirSuvenirov.Controllers
             _environment = environment;
         }
 
-        public IActionResult Index(
+        public async Task<IActionResult> Index(
             string search,
             string category,
             string material,
@@ -29,16 +31,14 @@ namespace MirSuvenirov.Controllers
             int? priceMin,
             int? priceMax,
             string sort,
-            int page = 1,
-            int pageSize = 4)
+            int page = 1)
         {
-            pageSize = 4;
             if (page < 1)
             {
                 page = 1;
             }
 
-            var productsQuery = _db.Products.AsQueryable();
+            var productsQuery = _db.Products.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -76,21 +76,32 @@ namespace MirSuvenirov.Controllers
                 _ => productsQuery.OrderBy(p => p.Id)
             };
 
-            var totalCount = productsQuery.Count();
-            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-            if (page > totalPages)
+            var totalCount = await productsQuery.CountAsync();
+            var totalPages = totalCount == 0
+                ? 0
+                : (int)Math.Ceiling(totalCount / (double)CatalogPageSize);
+
+            if (totalPages == 0)
+            {
+                page = 1;
+            }
+            else if (page > totalPages)
             {
                 page = totalPages;
             }
 
+            var skip = (page - 1) * CatalogPageSize;
             var pagedProducts = productsQuery
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+                .Skip(skip)
+                .Take(CatalogPageSize);
+
+            var products = totalCount == 0
+                ? new List<Product>()
+                : await pagedProducts.ToListAsync();
 
             var viewModel = new ProductFilterViewModel
             {
-                Products = pagedProducts,
+                Products = products,
                 Query = search,
                 Category = category,
                 Material = material,
@@ -98,10 +109,10 @@ namespace MirSuvenirov.Controllers
                 Sort = sort,
                 PriceMin = priceMin,
                 PriceMax = priceMax,
-                Categories = _db.Products.Select(p => p.Category).Distinct().ToList(),
-                Materials = _db.Products.Select(p => p.Material).Distinct().ToList(),
+                Categories = await _db.Products.AsNoTracking().Select(p => p.Category).Distinct().ToListAsync(),
+                Materials = await _db.Products.AsNoTracking().Select(p => p.Material).Distinct().ToListAsync(),
                 Page = page,
-                PageSize = pageSize,
+                PageSize = CatalogPageSize,
                 TotalCount = totalCount,
                 TotalPages = totalPages
             };

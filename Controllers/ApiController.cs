@@ -11,6 +11,7 @@ namespace MirSuvenirov.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IWebHostEnvironment _environment;
+        private const int CatalogPageSize = 4;
 
         public ApiController(AppDbContext db, IWebHostEnvironment environment)
         {
@@ -43,7 +44,7 @@ namespace MirSuvenirov.Controllers
         }
 
         [HttpGet("catalog")]
-        public IActionResult Catalog(
+        public async Task<IActionResult> Catalog(
             string? search,
             string? category,
             string? material,
@@ -51,16 +52,14 @@ namespace MirSuvenirov.Controllers
             int? priceMin,
             int? priceMax,
             string? sort,
-            int page = 1,
-            int pageSize = 4)
+            int page = 1)
         {
-            pageSize = 4;
             if (page < 1)
             {
                 page = 1;
             }
 
-            var productsQuery = _db.Products.AsQueryable();
+            var productsQuery = _db.Products.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -98,17 +97,27 @@ namespace MirSuvenirov.Controllers
                 _ => productsQuery.OrderBy(p => p.Id)
             };
 
-            var totalCount = productsQuery.Count();
-            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-            if (page > totalPages)
+            var totalCount = await productsQuery.CountAsync();
+            var totalPages = totalCount == 0
+                ? 0
+                : (int)Math.Ceiling(totalCount / (double)CatalogPageSize);
+
+            if (totalPages == 0)
+            {
+                page = 1;
+            }
+            else if (page > totalPages)
             {
                 page = totalPages;
             }
 
-            var products = productsQuery
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+            var skip = (page - 1) * CatalogPageSize;
+            var pagedProductsQuery = productsQuery
+                .Skip(skip)
+                .Take(CatalogPageSize);
+            var products = totalCount == 0
+                ? new List<Product>()
+                : await pagedProductsQuery.ToListAsync();
 
             return Ok(new
             {
@@ -117,7 +126,7 @@ namespace MirSuvenirov.Controllers
                 total = totalCount,
                 totalPages = totalPages,
                 page = page,
-                pageSize = pageSize
+                pageSize = CatalogPageSize
             });
         }
 

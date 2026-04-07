@@ -308,8 +308,7 @@
                     priceMin: formData.get('priceMin') || '',
                     priceMax: formData.get('priceMax') || '',
                     sort: formData.get('sort') || '',
-                    page: requestedPage,
-                    pageSize: 4
+                    page: requestedPage
                 };
 
                 window.AjaxAPI.getCatalog(filters)
@@ -332,7 +331,6 @@
                         var urlParams = new URLSearchParams();
                         Object.keys(filters).forEach(function (key) {
                             var value = filters[key];
-                            if (key === 'pageSize') return;
                             if (key === 'page' && Number(value) <= 1) return;
                             if (!value || value === 'all') return;
                             urlParams.set(key, value);
