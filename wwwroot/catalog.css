@@ -474,6 +474,11 @@ td:nth-child(5) {
   box-shadow: none;
 }
 
+.catalog-page .catalog-page-btn.nav-btn {
+  min-width: 88px;
+  font-weight: 600;
+}
+
 .catalog-page .catalog-page-btn:hover {
   background: #f0f6ff;
   border-color: #9fc0ff;
@@ -486,6 +491,30 @@ td:nth-child(5) {
   background: var(--brand);
   color: #fff;
   border-color: var(--brand);
+}
+
+.catalog-page .catalog-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f7f8fb;
+  border-color: #dfe5f2;
+  color: #8fa0bd;
+}
+
+.catalog-page .catalog-page-btn:disabled:hover {
+  background: #f7f8fb;
+  border-color: #dfe5f2;
+  color: #8fa0bd;
+}
+
+.catalog-page .catalog-pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 40px;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .catalog-page .availability-cell {
